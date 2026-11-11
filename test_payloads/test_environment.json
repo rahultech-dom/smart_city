@@ -1,0 +1,12 @@
+{
+  "station_id": "STN-ANAND-VIHAR-03",
+  "station_name": "Anand Vihar Eco Monitoring Station",
+  "category": "environment",
+  "reported_concern": "AQI in Anand Vihar has reached Very Poor level with severe acrid haze and stagnant particulate smog.",
+  "location": {
+    "address": "Anand Vihar Eco Area, East Zone",
+    "latitude": 28.6469,
+    "longitude": 77.3160
+  },
+  "timestamp": "2026-11-11T13:23:00Z"
+}

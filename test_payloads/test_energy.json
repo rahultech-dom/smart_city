@@ -1,0 +1,15 @@
+{
+  "complaint_id": "CMP-ENG-006",
+  "citizen_name": "Kavita Joshi",
+  "citizen_contact": "+91-9845012345",
+  "category": "energy",
+  "issue_type": "STREETLIGHT_OUTAGE",
+  "feeder_id": "FDR-MUNIRKA-15",
+  "description": "Citizens report that streetlights are not working in Outer Ring Road service lane for over 1.5 km stretch. Road is pitch dark, creating serious safety hazards for pedestrians and women commuters.",
+  "location": {
+    "address": "Outer Ring Road Service Lane, Munirka",
+    "latitude": 28.5583,
+    "longitude": 77.1706
+  },
+  "timestamp": "2026-11-11T13:25:00Z"
+}

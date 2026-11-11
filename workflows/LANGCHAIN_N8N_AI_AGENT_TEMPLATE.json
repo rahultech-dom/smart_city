@@ -1,0 +1,143 @@
+{
+  "name": "Template: Native n8n LangChain AI Agent Sub-node Setup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "langchain-agent-template",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "lc-001",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.description }}",
+        "options": {
+          "systemMessage": "You are a Municipal Departmental AI Agent. Analyze the incident, formulate severity, alternative routes or cordon procedures, and output structured JSON."
+        }
+      },
+      "id": "lc-002",
+      "name": "AI Agent (LangChain)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "lc-003",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [360, 520],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "google-gemini-cred",
+          "name": "Google Gemini API account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "lc-004",
+      "name": "OpenAI Chat Model (Alternative)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [520, 520],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "query_traffic_maps",
+        "description": "Fetch live road congestion and speed from Google Maps or Traffic API",
+        "url": "http://localhost:5050/api/v1/maps/traffic",
+        "method": "GET"
+      },
+      "id": "lc-005",
+      "name": "Traffic Tool (HTTP Request)",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [680, 520]
+    },
+    {
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"report\": { \"type\": \"string\" },\n    \"severity\": { \"type\": \"string\", \"enum\": [\"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\"] },\n    \"recommendations\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"escalate_to_command\": { \"type\": \"boolean\" }\n  },\n  \"required\": [\"report\", \"severity\", \"recommendations\", \"escalate_to_command\"]\n}"
+      },
+      "id": "lc-006",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [840, 520]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (LangChain)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (LangChain)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traffic Tool (HTTP Request)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent (LangChain)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent (LangChain)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

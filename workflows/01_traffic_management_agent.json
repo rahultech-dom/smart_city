@@ -1,0 +1,200 @@
+{
+  "name": "Agent 3: Traffic Management Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "traffic-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "trf-node-0001",
+      "name": "Webhook: Receive Traffic Incident",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 360],
+      "webhookId": "traffic-agent-webhook"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/maps/traffic?lat={{ $json.body.location?.latitude || 28.5828 }}&lng={{ $json.body.location?.longitude || 77.1685 }}",
+        "options": {}
+      },
+      "id": "trf-node-0002",
+      "name": "Google Maps / Traffic API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/weather?lat={{ $('Webhook: Receive Traffic Incident').item.json.body.location?.latitude || 28.5828 }}&lng={{ $('Webhook: Receive Traffic Incident').item.json.body.location?.longitude || 77.1685 }}",
+        "options": {}
+      },
+      "id": "trf-node-0003",
+      "name": "Weather & Environmental API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 360]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/maps/directions",
+        "options": {}
+      },
+      "id": "trf-node-0004",
+      "name": "Maps Directions API (Alternative Routes)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare comprehensive context for Traffic AI Agent Reasoning\nconst complaint = $('Webhook: Receive Traffic Incident').first().json.body || {};\nconst trafficData = $('Google Maps / Traffic API').first().json || {};\nconst weatherData = $('Weather & Environmental API').first().json || {};\nconst routesData = $('Maps Directions API (Alternative Routes)').first().json || {};\n\nconst roadName = complaint.location?.address || trafficData.road_name || 'Major Arterial Corridor';\nconst currentSpeed = trafficData.current_speed_kmh || 7.0;\nconst typicalSpeed = trafficData.typical_speed_kmh || 45.0;\nconst isAccident = (complaint.description || '').toLowerCase().includes('accident') || \n                   (complaint.incident_type || '').toUpperCase() === 'ACCIDENT' ||\n                   (trafficData.active_incidents && trafficData.active_incidents.length > 0);\n\n// Determine Congestion Level\nlet severity = 'MODERATE';\nif (currentSpeed < 10 || isAccident) {\n  severity = 'SEVERE';\n} else if (currentSpeed < 20) {\n  severity = 'MODERATE';\n} else {\n  severity = 'LOW';\n}\n\n// Alternative routes from API\nconst alternativeRoutes = (routesData.routes || []).map(r => ({\n  route_name: r.route_name,\n  via_roads: r.via_roads,\n  estimated_delay_mins: r.delay_mins || 2,\n  capacity_status: r.traffic_condition || 'MODERATE'\n}));\n\n// AI Recommendations formulated based on live conditions\nconst recommendations = [\n  `Deploy Traffic Police at intersections leading to ${roadName} for manual green light extension.`,\n  `Broadcast dynamic VMS alert 2km prior: 'ACCIDENT/JAM ON ${roadName.toUpperCase()} - DIVERT VIA ${alternativeRoutes[0]?.route_name || 'PARALLEL BYPASS'}'`,\n  `Synchronize adaptive traffic signal timer on bypass corridor to favor diverted vehicle stream.`\n];\n\nif (weatherData.weather_condition === 'RAIN') {\n  recommendations.push('Wet pavement hazard: Advisory speed reduction to 30 km/h on alternative diversion.');\n}\n\nconst output = {\n  incident_id: 'TRF-INC-' + Date.now(),\n  complaint_id: complaint.complaint_id || 'CMP-TRF-001',\n  source_agent: 'traffic_management_agent',\n  congestion_report: `Severe traffic bottleneck detected on ${roadName}. Current speed: ${currentSpeed} km/h (Normal: ${typicalSpeed} km/h). Delay: ~${Math.round(trafficData.delay_seconds / 60 || 24)} mins due to ${isAccident ? 'accident blockage' : 'high density volume'}.`,\n  severity_level: severity,\n  speed_kmh: currentSpeed,\n  affected_locations: [\n    {\n      name: roadName,\n      latitude: complaint.location?.latitude || trafficData.location?.lat || 28.5828,\n      longitude: complaint.location?.longitude || trafficData.location?.lng || 77.1685,\n      choke_radius_meters: severity === 'SEVERE' ? 2000 : 800\n    }\n  ],\n  alternative_routes: alternativeRoutes,\n  recommendations: recommendations,\n  escalate_to_command: severity === 'SEVERE' || isAccident,\n  command_alert_headline: `[TRAFFIC ALERT] Severe Congestion & Disruption on ${roadName}`\n};\n\nreturn output;"
+      },
+      "id": "trf-node-0005",
+      "name": "Traffic AI Agent Node",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 360]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.escalate_to_command }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "trf-node-0006",
+      "name": "Escalate to Command Agent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/city-command/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "trf-node-0007",
+      "name": "Execute Sub-workflow: City Command Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 260]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Traffic AI Agent Node').item.json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "trf-node-0008",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1800, 360]
+    }
+  ],
+  "connections": {
+    "Webhook: Receive Traffic Incident": {
+      "main": [
+        [
+          {
+            "node": "Google Maps / Traffic API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Maps / Traffic API": {
+      "main": [
+        [
+          {
+            "node": "Weather & Environmental API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather & Environmental API": {
+      "main": [
+        [
+          {
+            "node": "Maps Directions API (Alternative Routes)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Maps Directions API (Alternative Routes)": {
+      "main": [
+        [
+          {
+            "node": "Traffic AI Agent Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Traffic AI Agent Node": {
+      "main": [
+        [
+          {
+            "node": "Escalate to Command Agent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate to Command Agent?": {
+      "main": [
+        [
+          {
+            "node": "Execute Sub-workflow: City Command Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Sub-workflow: City Command Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

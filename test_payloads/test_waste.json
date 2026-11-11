@@ -1,0 +1,15 @@
+{
+  "complaint_id": "CMP-WST-003",
+  "citizen_name": "Aman Verma",
+  "citizen_contact": "+91-9988776655",
+  "category": "waste",
+  "description": "Massive overflow of municipal garbage bin onto the public footpath and road. Waste has spilled over 15 meters, completely obstructing pedestrian movement with foul odor.",
+  "image_url": "https://images.smartcity.gov/waste_overflow_lajpat_nagar.jpg",
+  "location": {
+    "address": "Market Road, Block B, Lajpat Nagar",
+    "ward_id": "WARD-08",
+    "latitude": 28.5700,
+    "longitude": 77.2435
+  },
+  "timestamp": "2026-11-11T13:22:00Z"
+}

@@ -1,0 +1,142 @@
+{
+  "name": "Agent 8: Energy Management Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "energy-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "eng-node-0001",
+      "name": "Webhook: Receive Electricity Complaint",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 360],
+      "webhookId": "energy-agent-webhook"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/energy/feeder-status?feeder_id={{ $json.body.feeder_id || 'FDR-MUNIRKA-15' }}",
+        "options": {}
+      },
+      "id": "eng-node-0002",
+      "name": "HTTP Request: Smart Grid & Feeder Telemetry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/database/nearby-complaints?category=energy&lat={{ $('Webhook: Receive Electricity Complaint').item.json.body.location?.latitude || 28.5583 }}&lng={{ $('Webhook: Receive Electricity Complaint').item.json.body.location?.longitude || 77.1706 }}",
+        "options": {}
+      },
+      "id": "eng-node-0003",
+      "name": "Database: Check Feeder Complaint History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Energy & Smart Grid AI Reasoning Node\nconst complaint = $('Webhook: Receive Electricity Complaint').first().json.body || {};\nconst feederData = $('HTTP Request: Smart Grid & Feeder Telemetry').first().json || {};\nconst history = $('Database: Check Feeder Complaint History').first().json || {};\n\nconst desc = complaint.description || '';\nconst textCorpus = (complaint.issue_type + ' ' + desc).toLowerCase();\nconst address = complaint.location?.address || 'Outer Ring Road Service Lane, Munirka';\nconst lat = complaint.location?.latitude || 28.5583;\nconst lng = complaint.location?.longitude || 77.1706;\nconst feederId = feederData.feeder_id || 'FDR-MUNIRKA-15';\nconst breakerStatus = feederData.breaker_status || 'NORMAL';\n\n// Analyze issue type\nconst isStreetlight = textCorpus.includes('streetlight') || textCorpus.includes('dark') || textCorpus.includes('light');\nconst isOutage = textCorpus.includes('power cut') || textCorpus.includes('blackout') || breakerStatus === 'TRIPPED';\nconst isSparking = textCorpus.includes('spark') || textCorpus.includes('explosion') || textCorpus.includes('smoke');\n\n// Determine Priority\nlet priority = 'MEDIUM';\nlet issueCategory = 'STREETLIGHT_OUTAGE';\n\nif (isSparking) {\n  priority = 'CRITICAL';\n  issueCategory = 'TRANSFORMER_ELECTRICAL_FIRE_HAZARD';\n} else if (isStreetlight && (textCorpus.includes('ring road') || textCorpus.includes('highway') || textCorpus.includes('arterial'))) {\n  priority = 'HIGH'; // Dark arterial road is serious public safety & crime risk\n  issueCategory = 'MAJOR_CORRIDOR_STREETLIGHT_FAILURE';\n} else if (isOutage) {\n  priority = 'HIGH';\n  issueCategory = 'SUBSTATION_FEEDER_TRIP';\n}\n\n// Maintenance recommendations\nconst recommendations = [\n  `Dispatch Utility Lineman Quick Response Vehicle to ${address} (Substation: ${feederData.substation || 'Local 66/11kV'}).`,\n  `Inspect circuit breakers and underground cable line for suspected fault: ${feederData.suspected_fault || 'Cable insulation degradation'}.`\n];\n\nif (isStreetlight) {\n  recommendations.push(`Check dusk-to-dawn automated photocell controller and replace blown phase fuses on Circuits: ${(feederData.affected_streetlight_circuits || ['CKT-A']).join(', ')}.`);\n  recommendations.push('Coordinate with Traffic Police for temporary mobile lighting mast if repair takes > 4 hours.');\n}\nif (breakerStatus === 'TRIPPED') {\n  recommendations.push('Conduct megger insulation resistance test before re-energizing tripped 11kV vacuum circuit breaker.');\n}\n\nconst output = {\n  incident_id: 'ENG-INC-' + Date.now(),\n  complaint_id: complaint.complaint_id || 'CMP-ENG-006',\n  source_agent: 'energy_management_agent',\n  electricity_report: `Electrical infrastructure disruption identified: ${issueCategory}. Substation Feeder: ${feederId} (Status: ${breakerStatus}). Outage span: ~${feederData.estimated_outage_length_meters || 1600}m. Repeated history on line: ${history.matched_count || 0} recent tickets. Assessed Priority: ${priority}.`,\n  affected_area: {\n    address: address,\n    feeder_id: feederId,\n    substation: feederData.substation || 'Munirka Substation',\n    latitude: lat,\n    longitude: lng\n  },\n  priority: priority,\n  issue_type: issueCategory,\n  maintenance_recommendations: recommendations,\n  public_safety_impact: isStreetlight || isSparking,\n  escalate_to_command: priority === 'CRITICAL' || priority === 'HIGH',\n  command_alert_headline: `[ENERGY ALERT - ${priority}] ${issueCategory} on Feeder ${feederId}`\n};\n\nreturn output;"
+      },
+      "id": "eng-node-0004",
+      "name": "Energy AI Agent Node",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/city-command/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "eng-node-0005",
+      "name": "Execute Sub-workflow: Send Alert to City Command",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 360]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Energy AI Agent Node').item.json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "eng-node-0006",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 360]
+    }
+  ],
+  "connections": {
+    "Webhook: Receive Electricity Complaint": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Smart Grid & Feeder Telemetry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: Smart Grid & Feeder Telemetry": {
+      "main": [
+        [
+          {
+            "node": "Database: Check Feeder Complaint History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Database: Check Feeder Complaint History": {
+      "main": [
+        [
+          {
+            "node": "Energy AI Agent Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Energy AI Agent Node": {
+      "main": [
+        [
+          {
+            "node": "Execute Sub-workflow: Send Alert to City Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Sub-workflow: Send Alert to City Command": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

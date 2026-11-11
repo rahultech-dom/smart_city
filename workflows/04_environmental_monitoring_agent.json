@@ -1,0 +1,182 @@
+{
+  "name": "Agent 6: Environmental Monitoring Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "env-node-0001",
+      "name": "Schedule Trigger: Hourly AQI Monitor",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [180, 260]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "environment-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "env-node-0002",
+      "name": "Webhook: On-Demand Environmental Check",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 460],
+      "webhookId": "environment-agent-webhook"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/environment/aqi?station_id={{ $json.body?.station_id || 'STN-ANAND-VIHAR-03' }}",
+        "options": {}
+      },
+      "id": "env-node-0003",
+      "name": "Weather & AQI API Telemetry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Environmental Monitoring AI Agent Reasoning\nconst aqiData = $input.first().json || {};\nconst aqi = aqiData.aqi || 382;\nconst stationName = aqiData.station_name || 'Anand Vihar Eco Monitoring Station';\nconst pm25 = aqiData.pollutants?.pm25?.value || 245.8;\nconst pm10 = aqiData.pollutants?.pm10?.value || 395.2;\nconst windSpeed = aqiData.meteorological?.wind_speed_kmh || 3.2;\nconst thermalInversion = aqiData.meteorological?.thermal_inversion_detected || true;\n\n// Determine Category and Alerts\nlet category = 'VERY_POOR';\nconst alerts = [];\nconst recommendations = [];\nlet escalate = false;\n\nif (aqi >= 401) {\n  category = 'SEVERE';\n  alerts.push(`EMERGENCY: AQI has breached SEVERE threshold (${aqi}) at ${stationName}.`);\n  recommendations.push('Trigger GRAP Stage IV emergency: Total ban on non-essential construction and demolition.');\n  recommendations.push('Deploy heavy anti-smog guns and motorized water tankers along arterial roads.');\n  recommendations.push('Issue public health emergency broadcast: N95 masks mandatory for sensitive groups, restrict outdoor school activities.');\n  escalate = true;\n} else if (aqi >= 301) {\n  category = 'VERY_POOR';\n  alerts.push(`CRITICAL: AQI is in VERY POOR category (${aqi}) at ${stationName}.`);\n  recommendations.push('Deploy mobile Anti-Smog Gun units at major traffic intersections and dust corridors.');\n  recommendations.push('Intensify mechanical street sweeping and water sprinkling along Anand Vihar corridor.');\n  recommendations.push('Enforce strict ban on open garbage burning and DG set usage in surrounding industrial zones.');\n  escalate = true;\n} else if (aqi >= 201) {\n  category = 'POOR';\n  alerts.push(`ADVISORY: AQI elevated to POOR (${aqi}).`);\n  recommendations.push('Increase frequency of dust suppression water misting.');\n} else {\n  category = 'SATISFACTORY';\n  alerts.push(`AQI within acceptable limits (${aqi}).`);\n  recommendations.push('Maintain standard environmental monitoring.');\n}\n\nif (thermalInversion && windSpeed < 5) {\n  alerts.push('Meteorological Warning: Low wind speed (< 5 km/h) and thermal inversion layer trapping particulate matter near surface.');\n}\n\nconst output = {\n  reading_id: 'ENV-RDG-' + Date.now(),\n  station_id: aqiData.station_id || 'STN-ANAND-VIHAR-03',\n  source_agent: 'environmental_monitoring_agent',\n  aqi_report: `Station: ${stationName} | Current AQI: ${aqi} (${category}) | Dominant Pollutant: PM2.5 (${pm25} ug/m3, 4x WHO standard) | PM10: ${pm10} ug/m3 | Meteorological condition: Stagnant dispersion (Wind: ${windSpeed} km/h).`,\n  aqi_value: aqi,\n  dominant_pollutant: 'PM2.5',\n  category: category,\n  affected_locations: [stationName, 'East Municipal Zone', 'Interstate Bus Terminal Corridor'],\n  environmental_alerts: alerts,\n  recommendations: recommendations,\n  escalate_to_command: escalate,\n  command_alert_headline: `[ENVIRONMENTAL ALERT - ${category}] AQI Breached ${aqi} at ${stationName}`\n};\n\nreturn output;"
+      },
+      "id": "env-node-0004",
+      "name": "Environmental AI Agent Node",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 360]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.escalate_to_command }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "env-node-0005",
+      "name": "AQI Threshold Exceeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [920, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/city-command/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "env-node-0006",
+      "name": "Execute Sub-workflow: Send Alert to City Command",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 260]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Environmental AI Agent Node').item.json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "env-node-0007",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1400, 360]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger: Hourly AQI Monitor": {
+      "main": [
+        [
+          {
+            "node": "Weather & AQI API Telemetry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: On-Demand Environmental Check": {
+      "main": [
+        [
+          {
+            "node": "Weather & AQI API Telemetry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather & AQI API Telemetry": {
+      "main": [
+        [
+          {
+            "node": "Environmental AI Agent Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Environmental AI Agent Node": {
+      "main": [
+        [
+          {
+            "node": "AQI Threshold Exceeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AQI Threshold Exceeded?": {
+      "main": [
+        [
+          {
+            "node": "Execute Sub-workflow: Send Alert to City Command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Sub-workflow: Send Alert to City Command": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

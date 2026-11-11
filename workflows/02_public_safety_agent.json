@@ -1,0 +1,181 @@
+{
+  "name": "Agent 4: Public Safety Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "public-safety-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "saf-node-0001",
+      "name": "Webhook: Receive Safety Report",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 360],
+      "webhookId": "public-safety-agent-webhook"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/database/nearby-complaints?category=safety&lat={{ $json.body.location?.latitude || 28.5672 }}&lng={{ $json.body.location?.longitude || 77.1789 }}",
+        "options": {}
+      },
+      "id": "saf-node-0002",
+      "name": "Database: Check Repeat Hotspots",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Public Safety AI Agent Reasoning Engine\nconst complaint = $('Webhook: Receive Safety Report').first().json.body || {};\nconst history = $('Database: Check Repeat Hotspots').first().json || {};\n\nconst title = complaint.title || 'Public Safety Hazard';\nconst desc = complaint.description || '';\nconst textCorpus = (title + ' ' + desc).toLowerCase();\nconst address = complaint.location?.address || 'Municipal Zone';\nconst lat = complaint.location?.latitude || 28.5672;\nconst lng = complaint.location?.longitude || 77.1789;\n\n// Proximity detection for sensitive infrastructure\nconst isNearSchool = textCorpus.includes('school') || textCorpus.includes('college') || complaint.near_school === true;\nconst isNearHospital = textCorpus.includes('hospital') || textCorpus.includes('clinic');\nconst isElectricalHazard = textCorpus.includes('electric') || textCorpus.includes('wire') || textCorpus.includes('pole') || textCorpus.includes('transformer');\nconst isFireOrGas = textCorpus.includes('fire') || textCorpus.includes('gas') || textCorpus.includes('smoke');\nconst isOpenManhole = textCorpus.includes('manhole') || textCorpus.includes('drain') || textCorpus.includes('pit');\n\n// Determine Risk Level\nlet riskLevel = 'MEDIUM';\nlet hazardType = 'GENERAL_PUBLIC_HAZARD';\n\nif (isElectricalHazard) {\n  hazardType = 'FALLEN_ELECTRIC_POLE_LIVE_WIRES';\n  riskLevel = isNearSchool || isNearHospital ? 'CRITICAL' : 'HIGH';\n} else if (isFireOrGas) {\n  hazardType = 'FIRE_GAS_HAZARD';\n  riskLevel = 'CRITICAL';\n} else if (isOpenManhole) {\n  hazardType = 'OPEN_MANHOLE_PEDESTRIAN_HAZARD';\n  riskLevel = 'HIGH';\n}\n\n// Recommended emergency departments (CIVIC RECOMMENDATIONS ONLY - NOT AUTONOMOUS ARMED DISPATCH)\nconst targetDepartments = [];\nif (isElectricalHazard) targetDepartments.push('State Electricity Distribution Co. (Emergency Feeder Line)', 'Local Substation Linemen Unit');\nif (isNearSchool || riskLevel === 'CRITICAL') targetDepartments.push('City Police (Traffic & Cordon Control)', 'District Disaster Management Authority (DDMA)');\nif (isFireOrGas) targetDepartments.push('Fire & Rescue Services', 'Municipal Ambulance Services');\nif (isOpenManhole) targetDepartments.push('Municipal Corporation Road & Drainage Dept');\nif (targetDepartments.length === 0) targetDepartments.push('Municipal Civic Patrol');\n\n// Recommended safety cordons\nconst safetyMeasures = [\n  `Immediately isolate and restrict pedestrian and vehicular access within a 50-meter perimeter around ${address}.`,\n  `Erect visible caution barriers and deploy emergency hazard blinkers.`\n];\n\nif (isNearSchool) {\n  safetyMeasures.push('Coordinate with School Administration to hold students indoors or divert dismissal through alternate gates.');\n}\nif (isElectricalHazard) {\n  safetyMeasures.push('Request Electricity Grid Operator to isolate and de-energize the local feeder line immediately.');\n}\n\nconst output = {\n  incident_id: 'SAF-INC-' + Date.now(),\n  complaint_id: complaint.complaint_id || 'CMP-SAF-002',\n  source_agent: 'public_safety_agent',\n  incident_report: `Urgent hazard identified: ${title}. ${desc}. Located in proximity to sensitive public facilities (${isNearSchool ? 'School' : isNearHospital ? 'Hospital' : 'Public Thoroughfare'}). Assessed risk level: ${riskLevel}.`,\n  risk_level: riskLevel,\n  hazard_type: hazardType,\n  location: {\n    address: address,\n    latitude: lat,\n    longitude: lng,\n    sensitive_zone: isNearSchool ? 'Government School Perimeter' : (isNearHospital ? 'Hospital Zone' : 'Residential Commercial Area')\n  },\n  repeated_complaints_nearby: history.matched_count || 0,\n  recommended_safety_measures: safetyMeasures,\n  target_departments: targetDepartments,\n  escalation_status: (riskLevel === 'CRITICAL' || riskLevel === 'HIGH') ? 'IMMEDIATE_COMMAND_ESCALATION' : 'ROUTINE_DEPT_QUEUE',\n  requires_urgent_notification: riskLevel === 'CRITICAL' || riskLevel === 'HIGH',\n  command_alert_headline: `[PUBLIC SAFETY ALERT - ${riskLevel}] ${title} at ${address}`\n};\n\nreturn output;"
+      },
+      "id": "saf-node-0003",
+      "name": "Public Safety AI Agent Node",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 360]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.risk_level }}",
+              "operation": "regex",
+              "value2": "CRITICAL|HIGH"
+            }
+          ]
+        }
+      },
+      "id": "saf-node-0004",
+      "name": "IF: High or Critical Risk?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [920, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/notifications/sms",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": \"EMERGENCY_DUTY_OFFICER\",\n  \"priority\": \"{{ $json.risk_level }}\",\n  \"message\": \"CRITICAL ALERT: {{ $json.hazard_type }} reported at {{ $json.location.address }}. Recommended measures: Restrict access immediately. Alert sent to {{ $json.target_departments.join(', ') }}\"\n}",
+        "options": {}
+      },
+      "id": "saf-node-0005",
+      "name": "Emergency SMS / Dispatch Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/city-command/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Public Safety AI Agent Node').item.json) }}",
+        "options": {}
+      },
+      "id": "saf-node-0006",
+      "name": "Execute Sub-workflow: Escalate to City Command",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1400, 360]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Public Safety AI Agent Node').item.json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "saf-node-0007",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1640, 360]
+    }
+  ],
+  "connections": {
+    "Webhook: Receive Safety Report": {
+      "main": [
+        [
+          {
+            "node": "Database: Check Repeat Hotspots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Database: Check Repeat Hotspots": {
+      "main": [
+        [
+          {
+            "node": "Public Safety AI Agent Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Public Safety AI Agent Node": {
+      "main": [
+        [
+          {
+            "node": "IF: High or Critical Risk?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: High or Critical Risk?": {
+      "main": [
+        [
+          {
+            "node": "Emergency SMS / Dispatch Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Sub-workflow: Escalate to City Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emergency SMS / Dispatch Notification": {
+      "main": [
+        [
+          {
+            "node": "Execute Sub-workflow: Escalate to City Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Sub-workflow: Escalate to City Command": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "complaint_id": "CMP-WTR-005",
+  "citizen_name": "Rajesh Gupta",
+  "citizen_contact": "+91-9123456780",
+  "category": "water",
+  "description": "Severe waterlogging outside my house and underpass. Water is 3 feet deep, submerging vehicle exhaust pipes and entering ground floor courtyards. Drainage appears completely choked.",
+  "location": {
+    "address": "Pul Prahladpur Underpass, MB Road",
+    "latitude": 28.5135,
+    "longitude": 77.2882
+  },
+  "timestamp": "2026-11-11T13:24:00Z"
+}

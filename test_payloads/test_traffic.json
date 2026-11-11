@@ -1,0 +1,14 @@
+{
+  "complaint_id": "CMP-TRF-001",
+  "citizen_name": "Vikram Sen",
+  "citizen_contact": "+91-9876543210",
+  "category": "traffic",
+  "incident_type": "ACCIDENT",
+  "description": "A road is blocked because of an accident between two heavy commercial vehicles. Traffic completely backed up for 2 km on Ring Road near Moti Bagh flyover.",
+  "location": {
+    "address": "Ring Road, near Moti Bagh Flyover",
+    "latitude": 28.5828,
+    "longitude": 77.1685
+  },
+  "timestamp": "2026-11-11T13:20:00Z"
+}

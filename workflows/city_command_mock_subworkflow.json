@@ -1,0 +1,65 @@
+{
+  "name": "City Command Agent - Central Sub-workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c1a01111-0001-4000-8000-000000000001",
+      "name": "Sub-workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ingest alert from Departmental Agent\nconst inputData = $input.first().json;\nconst timestamp = new Date().toISOString();\n\nconst alertPayload = {\n  command_alert_id: 'CMD-' + Date.now(),\n  source_agent: inputData.source_agent || 'departmental_agent',\n  incident_reference_id: inputData.incident_id || inputData.reading_id || inputData.complaint_id || 'INC-UNKNOWN',\n  priority: inputData.risk_level || inputData.severity_level || inputData.severity || inputData.priority || 'HIGH',\n  headline: inputData.command_alert_headline || inputData.headline || 'Departmental Alert Received',\n  received_at: timestamp,\n  raw_payload: inputData\n};\n\n// Decision Logic: Determine Unified Action Tasks\nconst unifiedTask = {\n  task_id: 'UTASK-' + Math.random().toString(36).substring(2, 9).toUpperCase(),\n  assigned_agency: alertPayload.source_agent.toUpperCase().replace('_', ' ') + ' FIELD UNIT',\n  priority: alertPayload.priority,\n  status: 'QUEUED_FOR_EXECUTION',\n  authority_approval_required: alertPayload.priority === 'CRITICAL' || alertPayload.priority === 'SEVERE',\n  created_at: timestamp\n};\n\nreturn {\n  success: true,\n  status: 'COORDINATED_BY_CITY_COMMAND',\n  alert: alertPayload,\n  unified_task: unifiedTask,\n  timestamp: timestamp\n};"
+      },
+      "id": "c1a01111-0002-4000-8000-000000000002",
+      "name": "Process & Prioritize Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/city-command/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "c1a01111-0003-4000-8000-000000000003",
+      "name": "Log to Command Center API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Sub-workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Process & Prioritize Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process & Prioritize Alert": {
+      "main": [
+        [
+          {
+            "node": "Log to Command Center API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

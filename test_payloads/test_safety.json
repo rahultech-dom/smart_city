@@ -1,0 +1,14 @@
+{
+  "complaint_id": "CMP-SAF-002",
+  "citizen_name": "Sunita Rao",
+  "citizen_contact": "+91-9811223344",
+  "title": "Fallen electric pole near school with live wires exposed",
+  "description": "A heavy electric distribution pole has snapped and fallen near the main gate of Govt Boys Senior Secondary School. High-voltage wires are sparking against the boundary metal fence.",
+  "location": {
+    "address": "Main Road, Sector 4, near Govt Boys School, R.K. Puram",
+    "latitude": 28.5672,
+    "longitude": 77.1789
+  },
+  "near_school": true,
+  "timestamp": "2026-11-11T13:21:00Z"
+}

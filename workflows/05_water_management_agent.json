@@ -1,0 +1,142 @@
+{
+  "name": "Agent 7: Water Management Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "water-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wtr-node-0001",
+      "name": "Webhook: Receive Water Complaint",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 360],
+      "webhookId": "water-agent-webhook"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/weather?lat={{ $json.body.location?.latitude || 28.5135 }}&lng={{ $json.body.location?.longitude || 77.2882 }}",
+        "options": {}
+      },
+      "id": "wtr-node-0002",
+      "name": "Weather API: Precipitation Telemetry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/database/nearby-complaints?category=water&lat={{ $('Webhook: Receive Water Complaint').item.json.body.location?.latitude || 28.5135 }}&lng={{ $('Webhook: Receive Water Complaint').item.json.body.location?.longitude || 77.2882 }}",
+        "options": {}
+      },
+      "id": "wtr-node-0003",
+      "name": "Database: Check Nearby Flood History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Water & Drainage Management AI Reasoning Node\nconst complaint = $('Webhook: Receive Water Complaint').first().json.body || {};\nconst weather = $('Weather API: Precipitation Telemetry').first().json || {};\nconst history = $('Database: Check Nearby Flood History').first().json || {};\n\nconst desc = complaint.description || '';\nconst textCorpus = desc.toLowerCase();\nconst address = complaint.location?.address || 'Pul Prahladpur Underpass, MB Road';\nconst lat = complaint.location?.latitude || 28.5135;\nconst lng = complaint.location?.longitude || 77.2882;\nconst rainMmHr = weather.precipitation_rate_mm_hr || 38.5;\nconst isRainActive = rainMmHr > 5.0;\nconst clusterCount = history.matched_count || 0;\nconst isHotspot = history.is_chronic_hotspot || false;\n\n// Classify Water Issue\nlet category = 'DRAINAGE_AND_WATERLOGGING';\nlet possibleCause = 'Stormwater drain siltation and high rainfall intensity';\nlet severity = 'HIGH';\n\nif (textCorpus.includes('pipeline') || textCorpus.includes('burst') || textCorpus.includes('drinking water')) {\n  category = 'PIPELINE_RUPTURE';\n  possibleCause = 'Main freshwater distribution pipe fracture / pressure surge';\n  severity = 'HIGH';\n} else if (textCorpus.includes('underpass') || textCorpus.includes('subway') || textCorpus.includes('stalled cars') || textCorpus.includes('feet')) {\n  category = 'CRITICAL_UNDERPASS_INUNDATION';\n  possibleCause = 'Underpass drainage sump pump failure during active precipitation';\n  severity = 'CRITICAL';\n} else if (textCorpus.includes('sewage') || textCorpus.includes('smell') || textCorpus.includes('overflow')) {\n  category = 'SEWAGE_DRAIN_BLOCKAGE';\n  possibleCause = 'Trunk sewer line choke by plastic debris and silt buildup';\n  severity = 'HIGH';\n}\n\n// Action recommendations\nconst actions = [];\nif (severity === 'CRITICAL') {\n  actions.push('Deploy 2x High-Capacity Diesel Dewatering Pumps (50 HP) to clear underpass within 90 minutes.');\n  actions.push('Barricade underpass approaches immediately to prevent vehicular stranding.');\n  actions.push('Dispatch Municipal Drainage Quick Response Team to inspect gravity outfall valve.');\n} else if (category === 'PIPELINE_RUPTURE') {\n  actions.push('Isolate sluice valve #6 to prevent potable water loss.');\n  actions.push('Dispatch emergency pipeline repair gang with replacement collar pipe.');\n} else {\n  actions.push('Dispatch Super Sucker / Jetting machine to clear local stormwater line.');\n  actions.push('Schedule post-monsoon desilting inspection for catchment zone.');\n}\n\nconst output = {\n  incident_id: 'WTR-INC-' + Date.now(),\n  complaint_id: complaint.complaint_id || 'CMP-WTR-005',\n  source_agent: 'water_management_agent',\n  water_issue_report: `Inundation & water issue reported at ${address}. Type: ${category}. Rainfall rate: ${rainMmHr} mm/hr. Local complaint cluster detected: ${clusterCount} reports in vicinity (Chronic hotspot: ${isHotspot ? 'YES' : 'NO'}). Assessed severity: ${severity}.`,\n  location: {\n    address: address,\n    latitude: lat,\n    longitude: lng,\n    is_chronic_flood_spot: isHotspot\n  },\n  severity: severity,\n  possible_cause: possibleCause,\n  recommended_action: actions.join(' | '),\n  recommended_equipment: severity === 'CRITICAL' ? ['50 HP High Flow Dewatering Pump', 'Safety Barricades', 'Mobile Generator'] : ['Super Sucker Jetting Truck'],\n  rainfall_data: {\n    precipitation_rate_mm_hr: rainMmHr,\n    condition: weather.weather_condition || 'RAIN'\n  },\n  cluster_detected: clusterCount > 1,\n  escalate_to_command: severity === 'CRITICAL' || severity === 'HIGH',\n  command_alert_headline: `[WATER ALERT - ${severity}] ${category} at ${address}`\n};\n\nreturn output;"
+      },
+      "id": "wtr-node-0004",
+      "name": "Water AI Agent Node",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/city-command/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "wtr-node-0005",
+      "name": "Execute Sub-workflow: Coordinate with City Command",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 360]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Water AI Agent Node').item.json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "wtr-node-0006",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 360]
+    }
+  ],
+  "connections": {
+    "Webhook: Receive Water Complaint": {
+      "main": [
+        [
+          {
+            "node": "Weather API: Precipitation Telemetry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather API: Precipitation Telemetry": {
+      "main": [
+        [
+          {
+            "node": "Database: Check Nearby Flood History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Database: Check Nearby Flood History": {
+      "main": [
+        [
+          {
+            "node": "Water AI Agent Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Water AI Agent Node": {
+      "main": [
+        [
+          {
+            "node": "Execute Sub-workflow: Coordinate with City Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Sub-workflow: Coordinate with City Command": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

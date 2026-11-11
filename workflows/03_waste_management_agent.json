@@ -1,0 +1,168 @@
+{
+  "name": "Agent 5: Waste Management Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "waste-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wst-node-0001",
+      "name": "Webhook: Receive Waste Complaint & Photo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 360],
+      "webhookId": "waste-agent-webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/vision/analyze-waste",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"image_url\": \"{{ $json.body.image_url || 'https://images.smartcity.gov/waste_overflow_sample.jpg' }}\",\n  \"complaint_id\": \"{{ $json.body.complaint_id || 'CMP-WST-003' }}\"\n}",
+        "options": {}
+      },
+      "id": "wst-node-0002",
+      "name": "Vision AI: Analyze Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/database/nearby-complaints?category=waste&lat={{ $('Webhook: Receive Waste Complaint & Photo').item.json.body.location?.latitude || 28.5700 }}&lng={{ $('Webhook: Receive Waste Complaint & Photo').item.json.body.location?.longitude || 77.2435 }}",
+        "options": {}
+      },
+      "id": "wst-node-0003",
+      "name": "Database: Check Chronic Dumping Spot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 360]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://localhost:5050/api/v1/maps/directions",
+        "options": {}
+      },
+      "id": "wst-node-0004",
+      "name": "Google Maps: Sanitaton Truck Route",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [860, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Waste Management AI Reasoning Node\nconst complaint = $('Webhook: Receive Waste Complaint & Photo').first().json.body || {};\nconst vision = $('Vision AI: Analyze Photo').first().json || {};\nconst history = $('Database: Check Chronic Dumping Spot').first().json || {};\nconst routes = $('Google Maps: Sanitaton Truck Route').first().json || {};\n\nconst overflow = vision.overflow_percentage || 85;\nconst address = complaint.location?.address || 'Market Road, Block B, Lajpat Nagar';\nconst ward = complaint.location?.ward_id || 'WARD-08';\nconst lat = complaint.location?.latitude || 28.5700;\nconst lng = complaint.location?.longitude || 77.2435;\nconst isChronic = history.is_chronic_hotspot || false;\n\n// Determine Severity\nlet severity = 'MODERATE';\nif (overflow > 80 || isChronic || vision.sanitation_risk_score > 8.0) {\n  severity = 'URGENT';\n} else if (overflow < 40) {\n  severity = 'ROUTINE';\n}\n\n// Action recommendation\nlet recommendedAction = '';\nlet vehicleType = 'COMPACTOR_TRUCK';\n\nif (severity === 'URGENT') {\n  recommendedAction = `Immediate sanitation crew dispatch required. Deploy 14-tonne Hydraulic Compactor Truck with 3-member team to clear ${overflow}% overflow and sanitize footpath within 3 hours.`;\n  vehicleType = 'HYDRAULIC_COMPACTOR_TRUCK_14T';\n} else {\n  recommendedAction = `Schedule for regular morning shift route #4B at 07:00 AM. Bin level is ${overflow}%.`;\n  vehicleType = 'STANDARD_TIPPER_TRUCK';\n}\n\n// Suggest route\nconst suggestedRoute = routes.routes?.[0]?.route_name || 'Direct Transfer Station Corridor';\n\nconst output = {\n  incident_id: 'WST-INC-' + Date.now(),\n  complaint_id: complaint.complaint_id || 'CMP-WST-003',\n  source_agent: 'waste_management_agent',\n  waste_report: `Visual inspection confirms overflowing municipal bin at ${address} (${ward}). Overflow volume: ${overflow}%. Debris: Organic & Dry Mixed Plastics. Spillover area: ~${vision.spillover_area_sq_meters || 12} sq. meters.${isChronic ? ' Warning: Location is a documented chronic dumping hotspot (3+ complaints this month).' : ''}`,\n  location: {\n    address: address,\n    ward_id: ward,\n    latitude: lat,\n    longitude: lng\n  },\n  severity: severity,\n  waste_type: 'MUNICIPAL_SOLID_WASTE_AND_PLASTIC',\n  bin_overflow_percentage: overflow,\n  is_chronic_dumping_zone: isChronic,\n  recommended_collection_action: recommendedAction,\n  recommended_vehicle: vehicleType,\n  suggested_route: suggestedRoute,\n  status: 'DISPATCH_REQUESTED',\n  command_alert_headline: `[WASTE ALERT - ${severity}] Bin Overflow & Footpath Obstruction at ${address}`\n};\n\nreturn output;"
+      },
+      "id": "wst-node-0005",
+      "name": "Waste AI Agent Node",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5050/api/v1/city-command/alert",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "wst-node-0006",
+      "name": "Execute Sub-workflow: Update City Command Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 360]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Waste AI Agent Node').item.json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "wst-node-0007",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 360]
+    }
+  ],
+  "connections": {
+    "Webhook: Receive Waste Complaint & Photo": {
+      "main": [
+        [
+          {
+            "node": "Vision AI: Analyze Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vision AI: Analyze Photo": {
+      "main": [
+        [
+          {
+            "node": "Database: Check Chronic Dumping Spot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Database: Check Chronic Dumping Spot": {
+      "main": [
+        [
+          {
+            "node": "Google Maps: Sanitaton Truck Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Maps: Sanitaton Truck Route": {
+      "main": [
+        [
+          {
+            "node": "Waste AI Agent Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Waste AI Agent Node": {
+      "main": [
+        [
+          {
+            "node": "Execute Sub-workflow: Update City Command Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Sub-workflow: Update City Command Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
