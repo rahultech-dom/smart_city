@@ -1,0 +1,187 @@
+[
+  {
+    "scenario": "1. Single Department (Waste - Integration Demo Scenario)",
+    "input_payload": {
+      "citizen_name": "Demo Citizen",
+      "contact": null,
+      "description": "Garbage bins are overflowing near the market.",
+      "category": "waste",
+      "image_url": null,
+      "latitude": 28.6139,
+      "longitude": 77.209,
+      "location_text": "Demo Market, Sector 1",
+      "source": "citizen_complaint"
+    },
+    "command_output": {
+      "agent": "city_command",
+      "event_id": "0a586c87-a162-49e8-b99c-ec1b75128f75",
+      "complaint_id": null,
+      "overall_severity": "medium",
+      "priority_reason": "The complaint reports a civic waste issue without a confirmed immediate threat.",
+      "departments_involved": [
+        "waste"
+      ],
+      "agent_results": [
+        {
+          "agent": "waste",
+          "event_id": "808c10be-0985-4081-9fc5-21d4d3a017e8",
+          "complaint_id": null,
+          "issue": "Garbage overflow",
+          "department": "waste",
+          "severity": "medium",
+          "findings": [
+            "The report describes overflowing garbage bins."
+          ],
+          "recommendation": "Request inspection and schedule collection if verified.",
+          "requires_human_approval": true,
+          "status": "recommendation_ready",
+          "confidence": 0.85,
+          "created_at": "2026-11-11T12:00:00Z"
+        }
+      ],
+      "consolidated_recommendations": [
+        "Request human verification of the reported location.",
+        "[Waste] Request inspection and schedule collection if verified."
+      ],
+      "requires_human_approval": true,
+      "status": "awaiting_human_review",
+      "created_at": "2026-11-11T12:26:26.220485+00:00"
+    }
+  },
+  {
+    "scenario": "2. Cross-Department Incident (Waterlogging & Traffic Gridlock)",
+    "input_payload": {
+      "description": "Severe waterlogging on Main Highway causing massive traffic jam and road blockage.",
+      "category": "traffic",
+      "latitude": 28.61,
+      "longitude": 77.21,
+      "location_text": "Main Highway Sector 4",
+      "source": "citizen_complaint"
+    },
+    "command_output": {
+      "agent": "city_command",
+      "event_id": "4818cce4-d01d-4f4a-b9d3-511b312afaca",
+      "complaint_id": null,
+      "overall_severity": "high",
+      "priority_reason": "Significant public safety or infrastructure disruption indicated; timely intervention recommended.",
+      "departments_involved": [
+        "traffic",
+        "water"
+      ],
+      "agent_results": [
+        {
+          "agent": "traffic",
+          "event_id": "4818cce4-d01d-4f4a-b9d3-511b312afaca",
+          "complaint_id": null,
+          "issue": "Traffic condition assessment",
+          "department": "traffic",
+          "severity": "medium",
+          "findings": [
+            "Assessed traffic aspect from citizen report: Severe waterlogging on Main Highway causing massive traffic jam and road blockage."
+          ],
+          "recommendation": "Schedule site inspection for traffic verification.",
+          "requires_human_approval": true,
+          "status": "recommendation_ready",
+          "confidence": 0.85,
+          "created_at": "2026-11-11T12:00:00Z"
+        },
+        {
+          "agent": "water",
+          "event_id": "4818cce4-d01d-4f4a-b9d3-511b312afaca",
+          "complaint_id": null,
+          "issue": "Water condition assessment",
+          "department": "water",
+          "severity": "medium",
+          "findings": [
+            "Assessed water aspect from citizen report: Severe waterlogging on Main Highway causing massive traffic jam and road blockage."
+          ],
+          "recommendation": "Schedule site inspection for water verification.",
+          "requires_human_approval": true,
+          "status": "recommendation_ready",
+          "confidence": 0.85,
+          "created_at": "2026-11-11T12:00:00Z"
+        }
+      ],
+      "consolidated_recommendations": [
+        "Request human verification of the reported location.",
+        "[Traffic] Schedule site inspection for traffic verification.",
+        "[Water] Schedule site inspection for water verification."
+      ],
+      "requires_human_approval": true,
+      "status": "awaiting_human_review",
+      "created_at": "2026-11-11T12:26:26.221121+00:00"
+    }
+  },
+  {
+    "scenario": "3. Insufficient Information (Ambiguous Report)",
+    "input_payload": {
+      "description": "Strange thing here",
+      "source": "citizen_complaint"
+    },
+    "command_output": {
+      "agent": "city_command",
+      "event_id": "4bf4ba97-4615-4fbd-afce-c455fea2181b",
+      "complaint_id": null,
+      "overall_severity": "medium",
+      "priority_reason": "Supplied information provides insufficient detail to confirm urgency; severity defaults to medium and requires human verification.",
+      "departments_involved": [
+        "general"
+      ],
+      "agent_results": [],
+      "consolidated_recommendations": [
+        "Request human verification of the reported location as precise coordinates/location text are missing.",
+        "Conduct human triage to classify the ambiguous complaint into the appropriate municipal department."
+      ],
+      "requires_human_approval": true,
+      "status": "awaiting_human_review",
+      "created_at": "2026-11-11T12:26:26.221326+00:00"
+    }
+  },
+  {
+    "scenario": "4. Sub-workflow Department Failure Handling",
+    "input_payload": {
+      "description": "Street light pole sparking and blackout on 2nd cross street.",
+      "category": "energy",
+      "source": "citizen_complaint",
+      "location_text": "2nd Cross Street"
+    },
+    "command_output": {
+      "agent": "city_command",
+      "event_id": "38eb5faa-6796-406f-be4c-6b824adcbe4e",
+      "complaint_id": null,
+      "overall_severity": "medium",
+      "priority_reason": "The complaint reports a civic energy issue without a confirmed immediate threat.",
+      "departments_involved": [
+        "energy"
+      ],
+      "agent_results": [
+        {
+          "department": "energy",
+          "status": "failed",
+          "error": "Timeout executing WF_Department_Energy in sub-workflow engine."
+        }
+      ],
+      "consolidated_recommendations": [
+        "Request human verification of the reported location.",
+        "Department assessment for energy was unavailable or returned an error; require manual inspection by energy supervisor."
+      ],
+      "requires_human_approval": true,
+      "status": "awaiting_human_review",
+      "created_at": "2026-11-11T12:26:26.221585+00:00"
+    }
+  },
+  {
+    "scenario": "5. Input Validation Error (Empty Description)",
+    "input_payload": {
+      "description": "   ",
+      "category": "waste",
+      "source": "citizen_complaint"
+    },
+    "command_output": {
+      "success": false,
+      "error_code": "VALIDATION_ERROR",
+      "message": "The complaint description is required and cannot be empty.",
+      "event_id": null
+    }
+  }
+]

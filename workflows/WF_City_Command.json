@@ -1,0 +1,518 @@
+{
+  "name": "WF_City_Command",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280001",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        180,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 2 & 3: Validate input payload and setup run parameters\nconst input = $input.first().json;\n\nconst ALLOWED_SEVERITIES = new Set(['low', 'medium', 'high', 'critical']);\nconst ALLOWED_STATUSES = new Set(['submitted', 'under_review', 'assigned', 'in_progress', 'resolved', 'rejected']);\nconst ALLOWED_DEPARTMENTS = new Set(['traffic', 'safety', 'waste', 'environment', 'water', 'energy', 'general']);\nconst ALLOWED_SOURCES = new Set(['citizen_complaint', 'simulated_sensor', 'admin']);\n\n// 1. Validate description\nconst description = input.description ? String(input.description).trim() : '';\nif (!description) {\n  return [{\n    json: {\n      is_valid: false,\n      error_code: 'VALIDATION_ERROR',\n      message: 'The complaint description is required and cannot be empty.',\n      event_id: null\n    }\n  }];\n}\n\n// 2. Validate source\nconst source = input.source || 'citizen_complaint';\nif (!ALLOWED_SOURCES.has(source)) {\n  return [{\n    json: {\n      is_valid: false,\n      error_code: 'VALIDATION_ERROR',\n      message: `Invalid source '${source}'. Allowed values: ${Array.from(ALLOWED_SOURCES).join(', ')}.`,\n      event_id: null\n    }\n  }];\n}\n\n// 3. Validate severity if provided\nconst severity = input.severity || null;\nif (severity && !ALLOWED_SEVERITIES.has(severity)) {\n  return [{\n    json: {\n      is_valid: false,\n      error_code: 'VALIDATION_ERROR',\n      message: `Invalid severity '${severity}'. Allowed values: ${Array.from(ALLOWED_SEVERITIES).join(', ')}.`,\n      event_id: null\n    }\n  }];\n}\n\n// 4. Validate category/department if provided\nconst category = input.category || input.department || null;\nif (category && !ALLOWED_DEPARTMENTS.has(category)) {\n  return [{\n    json: {\n      is_valid: false,\n      error_code: 'VALIDATION_ERROR',\n      message: `Invalid category/department '${category}'. Allowed values: ${Array.from(ALLOWED_DEPARTMENTS).join(', ')}.`,\n      event_id: null\n    }\n  }];\n}\n\n// Generate or retain UUID identifiers\nfunction uuidv4() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst event_id = input.event_id || uuidv4();\nconst complaint_id = input.complaint_id || null;\nconst agent_run_id = uuidv4();\n\n// Location handling\nconst location = input.location || {\n  latitude: input.latitude !== undefined ? input.latitude : null,\n  longitude: input.longitude !== undefined ? input.longitude : null,\n  location_text: input.location_text || null\n};\n\n// Step 4: Determine relevant departments\nconst descLower = description.toLowerCase();\nconst implicated = new Set();\n\nif (category && category !== 'general') {\n  implicated.add(category);\n}\n\nconst keywords = {\n  traffic: ['traffic', 'congestion', 'traffic jam', 'signals', 'signal', 'road blockage', 'blocked road', 'gridlock'],\n  safety: ['hazard', 'threat', 'danger', 'fire', 'accident', 'emergency', 'collapse', 'structural damage'],\n  waste: ['garbage', 'trash', 'overflowing bin', 'waste', 'litter', 'dump', 'debris', 'sanitation'],\n  environment: ['aqi', 'air quality', 'smog', 'pollution', 'toxic fumes', 'smoke', 'chemical odor'],\n  water: ['waterlogging', 'water leak', 'pipeline burst', 'flooding', 'sewage', 'drainage', 'water supply'],\n  energy: ['power outage', 'blackout', 'street light', 'wire hanging', 'transformer', 'electricity', 'pole sparked']\n};\n\nfor (const [dept, terms] of Object.entries(keywords)) {\n  for (const term of terms) {\n    if (descLower.includes(term)) {\n      implicated.add(dept);\n      break;\n    }\n  }\n}\n\nlet departments = Array.from(implicated);\nlet routing_reason = '';\n\nif (departments.length === 0) {\n  departments = ['general'];\n  routing_reason = 'Category is unspecified or ambiguous; no single specialized department clearly matches.';\n} else if (departments.length > 1) {\n  routing_reason = `Cross-department coordination required: incident implicates ${departments.join(', ')}.`;\n} else {\n  routing_reason = `Single department identified: ${departments[0]}.`;\n}\n\nreturn [{\n  json: {\n    is_valid: true,\n    event_id,\n    complaint_id,\n    agent_run_id,\n    source,\n    description,\n    category,\n    severity,\n    location,\n    context: input.context || {},\n    departments,\n    routing_reason\n  }\n}];"
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280002",
+      "name": "Validate Input & Setup Run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_valid }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280003",
+      "name": "Check Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        620,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format standard validation error (Section 8.3)\nconst input = $input.first().json;\nreturn [{\n  json: {\n    success: false,\n    error_code: input.error_code || 'VALIDATION_ERROR',\n    message: input.message || 'Validation failed.',\n    event_id: null\n  }\n}];"
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280004",
+      "name": "Return Validation Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format department payload matching Section 3.5\nconst data = $input.first().json;\nconst department = data.departments[0];\n\nconst deptInput = {\n  event_id: data.event_id,\n  complaint_id: data.complaint_id,\n  source: data.source,\n  department: department,\n  description: data.description,\n  location: data.location,\n  severity: data.severity || 'medium',\n  context: data.context || {}\n};\n\nreturn [{\n  json: {\n    ...data,\n    primary_department: department,\n    dept_input: deptInput\n  }\n}];"
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280005",
+      "name": "Prepare Department Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.primary_department }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "traffic",
+              "output": 0
+            },
+            {
+              "value2": "safety",
+              "output": 1
+            },
+            {
+              "value2": "waste",
+              "output": 2
+            },
+            {
+              "value2": "environment",
+              "output": 3
+            },
+            {
+              "value2": "water",
+              "output": 4
+            },
+            {
+              "value2": "energy",
+              "output": 5
+            }
+          ]
+        },
+        "fallbackOutput": 6
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280006",
+      "name": "Route by Department",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "WF_Department_Traffic",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": "={{ $json.dept_input }}"
+        }
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280010",
+      "name": "Call Traffic Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        60
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": "WF_Department_Safety",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": "={{ $json.dept_input }}"
+        }
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280011",
+      "name": "Call Safety Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        140
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": "WF_Department_Waste",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": "={{ $json.dept_input }}"
+        }
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280012",
+      "name": "Call Waste Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        220
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": "WF_Department_Environment",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": "={{ $json.dept_input }}"
+        }
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280013",
+      "name": "Call Environment Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": "WF_Department_Water",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": "={{ $json.dept_input }}"
+        }
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280014",
+      "name": "Call Water Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        380
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": "WF_Department_Energy",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": "={{ $json.dept_input }}"
+        }
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280015",
+      "name": "Call Energy Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        460
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// General or cross-department direct passthrough without specialist workflow\nreturn [{\n  json: {\n    agent: 'general',\n    department: 'general',\n    findings: ['Complaint requires general administrative review.'],\n    recommendation: 'Conduct human triage.',\n    requires_human_approval: true,\n    status: 'recommendation_ready'\n  }\n}];"
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280016",
+      "name": "General Triage Passthrough",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 7, 8, 9: Consolidate findings, apply priority rules, build output contract\nconst runData = $('Prepare Department Call').first().json;\nconst subWorkflowResult = $input.first() ? $input.first().json : null;\n\nconst agentResults = [];\nif (subWorkflowResult) {\n  // Validate if result succeeded or failed\n  if (subWorkflowResult.error || subWorkflowResult.errorMessage) {\n    agentResults.push({\n      department: runData.primary_department,\n      status: 'failed',\n      error: subWorkflowResult.errorMessage || subWorkflowResult.error || 'Department workflow returned an error.'\n    });\n  } else {\n    agentResults.push(subWorkflowResult);\n  }\n}\n\n// Section 4.3: Priority Rules\nconst descLower = runData.description.toLowerCase();\nconst criticalTriggers = ['immediate threat to life', 'serious danger', 'life-threatening', 'active fire', 'building collapse', 'live high-voltage wire in water', 'electrocution risk'];\nconst highTriggers = ['severe waterlogging', 'massive traffic jam', 'power outage affecting hospital', 'blocked emergency access', 'toxic leak', 'major road collapse'];\nconst lowTriggers = ['graffiti', 'cosmetic', 'flickering bulb in daylight', 'minor litter', 'mild annoyance'];\n\nlet overallSeverity = 'medium';\nlet priorityReason = '';\n\nconst isInsufficient = runData.description.trim().split(/\\s+/).length < 4 && !runData.category;\n\nif (criticalTriggers.some(t => descLower.includes(t))) {\n  overallSeverity = 'critical';\n  priorityReason = 'Supplied information explicitly indicates an immediate threat to life or serious danger.';\n} else if (highTriggers.some(t => descLower.includes(t)) || (agentResults[0] && agentResults[0].severity === 'high')) {\n  overallSeverity = 'high';\n  priorityReason = 'Significant public safety or infrastructure disruption indicated; timely intervention recommended.';\n} else if (isInsufficient || runData.departments[0] === 'general') {\n  overallSeverity = 'medium';\n  priorityReason = 'Supplied information provides insufficient detail to confirm urgency; severity defaults to medium and requires human verification.';\n} else if (lowTriggers.some(t => descLower.includes(t)) || runData.severity === 'low') {\n  overallSeverity = 'low';\n  priorityReason = 'Minor civic issue with no stated immediate risk to public safety or core infrastructure.';\n} else {\n  overallSeverity = runData.severity || 'medium';\n  priorityReason = `The complaint reports a civic ${runData.departments[0] !== 'general' ? runData.departments[0] : 'general'} issue without a confirmed immediate threat.`;\n}\n\n// Consolidated recommendations\nconst recommendations = [];\nconst loc = runData.location || {};\nif (loc.latitude === null && !loc.location_text) {\n  recommendations.push('Request human verification of the reported location as precise coordinates/location text are missing.');\n} else {\n  recommendations.push('Request human verification of the reported location.');\n}\n\nif (runData.departments[0] === 'general') {\n  recommendations.push('Conduct human triage to classify the ambiguous complaint into the appropriate municipal department.');\n} else {\n  for (const dept of runData.departments) {\n    const match = agentResults.find(r => r && r.department === dept);\n    if (match) {\n      if (match.status === 'failed' || match.error) {\n        recommendations.push(`Department assessment for ${dept} was unavailable or returned an error; require manual inspection by ${dept} supervisor.`);\n      } else if (match.recommendation) {\n        recommendations.push(`[${dept.charAt(0).toUpperCase() + dept.slice(1)}] ${match.recommendation}`);\n      }\n    } else {\n      recommendations.push(`Assign the verified complaint to the municipal ${dept} team for operational review.`);\n    }\n  }\n}\n\nconst nowIso = new Date().toISOString();\n\nconst commandDecision = {\n  agent: 'city_command',\n  event_id: runData.event_id,\n  complaint_id: runData.complaint_id || null,\n  overall_severity: overallSeverity,\n  priority_reason: priorityReason,\n  departments_involved: runData.departments,\n  agent_results: agentResults,\n  consolidated_recommendations: recommendations,\n  requires_human_approval: true,\n  status: 'awaiting_human_review',\n  created_at: nowIso\n};\n\nreturn [{\n  json: commandDecision\n}];"
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280020",
+      "name": "Consolidate Findings & Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.SUPABASE_URL || 'https://example.supabase.co').replace(/\\/+$/, '') + '/rest/v1/command_decisions' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'demo-key' }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'demo-key') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  event_id: $json.event_id,\n  complaint_id: $json.complaint_id,\n  overall_severity: $json.overall_severity,\n  priority_reason: $json.priority_reason,\n  departments_involved: $json.departments_involved,\n  agent_results: $json.agent_results,\n  consolidated_recommendations: $json.consolidated_recommendations,\n  requires_human_approval: $json.requires_human_approval,\n  status: $json.status,\n  created_at: $json.created_at\n}) }}"
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280021",
+      "name": "Save Command Decision (Supabase)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        340
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 11: Return the exact Command Agent output contract\n// Retrieve output from Consolidate Findings & Priority node\nconst decision = $('Consolidate Findings & Priority').first().json;\nreturn [{\n  json: decision\n}];"
+      },
+      "id": "e4f3a021-9d22-4809-9061-1a0a51280022",
+      "name": "Return Command Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input & Setup Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input & Setup Run": {
+      "main": [
+        [
+          {
+            "node": "Check Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Validation": {
+      "main": [
+        [
+          {
+            "node": "Prepare Department Call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Department Call": {
+      "main": [
+        [
+          {
+            "node": "Route by Department",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Department": {
+      "main": [
+        [
+          {
+            "node": "Call Traffic Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Safety Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Waste Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Environment Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Water Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Energy Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "General Triage Passthrough",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Traffic Agent": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Findings & Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Safety Agent": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Findings & Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Waste Agent": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Findings & Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Environment Agent": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Findings & Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Water Agent": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Findings & Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Energy Agent": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Findings & Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "General Triage Passthrough": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Findings & Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidate Findings & Priority": {
+      "main": [
+        [
+          {
+            "node": "Save Command Decision (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Command Decision (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "Return Command Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "1a0a5128-9d22-4809-9061-e4f3a0210001"
+}
