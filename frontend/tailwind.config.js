@@ -7,19 +7,32 @@ export default {
   theme: {
     extend: {
       colors: {
+        sand: {
+          25: '#FDFCF9',
+          50: '#FAF8F5',
+          100: '#F5F2EB',
+          150: '#EFEBE2',
+          200: '#E6E1D5',
+          300: '#D5CEC0',
+          400: '#B8AE9C',
+          500: '#9C917E',
+          600: '#7B715F',
+          700: '#5C5446',
+          800: '#3E382E',
+          900: '#221E18',
+        },
         command: {
-          950: '#070C18',
-          900: '#0B132B',
-          850: '#0F1A3A',
-          800: '#14214D',
-          700: '#1E3270',
-          600: '#2A4699',
-          500: '#3D65CC',
-          400: '#5A87F0',
-          accent: '#00F0FF',
-          emerald: '#10B981',
-          amber: '#F59E0B',
-          rose: '#EF4444',
+          950: '#F7F5F0', // warm light beige canvas background
+          900: '#FFFFFF', // clean warm white card surfaces
+          850: '#FAF8F5', // subtle elevated surface
+          800: '#E7E2D7', // warm sand border
+          700: '#D6CEBE', // hover/active border
+          600: '#8C8271',
+          500: '#6E6454',
+          400: '#4A4337',
+          accent: '#B45309', // warm amber bronze accent
+          terracotta: '#C2410C',
+          sage: '#059669',
         }
       },
       fontFamily: {

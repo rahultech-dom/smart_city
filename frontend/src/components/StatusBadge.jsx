@@ -3,45 +3,45 @@ import React from 'react';
 const STATUS_CONFIGS = {
   submitted: {
     label: 'Submitted',
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/30',
-    text: 'text-blue-400',
-    dot: 'bg-blue-400',
+    bg: 'bg-sky-50',
+    border: 'border-sky-200',
+    text: 'text-sky-800',
+    dot: 'bg-sky-600',
   },
   under_review: {
     label: 'Under Review',
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/30',
-    text: 'text-amber-400',
-    dot: 'bg-amber-400 animate-pulse',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
+    text: 'text-amber-800',
+    dot: 'bg-amber-600 animate-pulse',
   },
   assigned: {
     label: 'Assigned',
-    bg: 'bg-indigo-500/10',
-    border: 'border-indigo-500/30',
-    text: 'text-indigo-400',
-    dot: 'bg-indigo-400',
+    bg: 'bg-indigo-50',
+    border: 'border-indigo-200',
+    text: 'text-indigo-800',
+    dot: 'bg-indigo-600',
   },
   in_progress: {
     label: 'In Progress',
-    bg: 'bg-cyan-500/10',
-    border: 'border-cyan-500/30',
-    text: 'text-cyan-400',
-    dot: 'bg-cyan-400 animate-ping',
+    bg: 'bg-teal-50',
+    border: 'border-teal-200',
+    text: 'text-teal-800',
+    dot: 'bg-teal-600 animate-pulse',
   },
   resolved: {
     label: 'Resolved',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    text: 'text-emerald-400',
-    dot: 'bg-emerald-400',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    text: 'text-emerald-800',
+    dot: 'bg-emerald-600',
   },
   rejected: {
     label: 'Rejected',
-    bg: 'bg-rose-500/10',
-    border: 'border-rose-500/30',
-    text: 'text-rose-400',
-    dot: 'bg-rose-400',
+    bg: 'bg-rose-50',
+    border: 'border-rose-200',
+    text: 'text-rose-800',
+    dot: 'bg-rose-600',
   },
 };
 
@@ -54,7 +54,7 @@ export default function StatusBadge({ status, size = 'sm' }) {
     : 'px-2.5 py-0.5 text-[11px] font-medium';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border ${cfg.bg} ${cfg.border} ${cfg.text} ${sizeClasses} font-mono uppercase tracking-wider`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border ${cfg.bg} ${cfg.border} ${cfg.text} ${sizeClasses} font-mono uppercase tracking-wider shadow-2xs`}>
       <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
       {cfg.label}
     </span>

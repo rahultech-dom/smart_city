@@ -108,23 +108,23 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-2xl rounded-2xl border border-slate-800 bg-[#0B132B] shadow-2xl p-6 sm:p-8 my-8 text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-2xl border border-[#E5E0D4] bg-white shadow-xl p-6 sm:p-8 my-8 text-stone-900">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-4 border-b border-[#E5E0D4]">
           <div>
-            <h3 className="text-lg font-bold font-mono tracking-wide text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-lg font-bold font-mono tracking-wide text-stone-900 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-700" />
               Ingest Citizen Complaint / Sensor Event
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-stone-500 mt-1">
               Direct ingestion into City Complaint Agent classification pipeline
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+            className="p-1.5 rounded-lg bg-[#FAF8F5] border border-[#E5E0D4] text-stone-500 hover:text-stone-900 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -132,7 +132,7 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
 
         {/* Quick Fill Presets */}
         <div className="mt-4">
-          <label className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2">
+          <label className="text-[11px] font-mono text-stone-600 font-semibold uppercase tracking-wider block mb-2">
             Quick Fill Demo Scenarios:
           </label>
           <div className="flex flex-wrap gap-2">
@@ -141,7 +141,7 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
                 key={idx}
                 type="button"
                 onClick={() => handleApplyPreset(p)}
-                className="px-2.5 py-1 text-xs font-mono rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300 transition-colors"
+                className="px-2.5 py-1 text-xs font-mono rounded-lg bg-[#FAF8F5] hover:bg-[#F2ECE1] border border-[#E5E0D4] text-stone-700 hover:text-stone-900 transition-colors shadow-2xs"
               >
                 {p.label}
               </button>
@@ -152,14 +152,14 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>{successMsg}</span>
             </div>
@@ -167,15 +167,15 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">
-              Complaint Description <span className="text-rose-400">*</span>
+            <label className="block text-xs font-mono text-stone-700 font-semibold mb-1.5">
+              Complaint Description <span className="text-rose-600">*</span>
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="E.g., Garbage bins overflowing onto the road near the market entrance..."
-              className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+              className="w-full rounded-xl bg-[#FAF8F5] border border-[#E5E0D4] px-3.5 py-2.5 text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-400 transition-all"
               required
             />
           </div>
@@ -183,13 +183,13 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
           {/* Category & Severity */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+              <label className="block text-xs font-mono text-stone-700 font-semibold mb-1.5">
                 Target Department / Category
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+                className="w-full rounded-xl bg-[#FAF8F5] border border-[#E5E0D4] px-3 py-2 text-xs text-stone-900 focus:outline-none focus:border-stone-500"
               >
                 <option value="">Auto-Detect via City Complaint NLP</option>
                 <option value="traffic">Traffic Management</option>
@@ -203,13 +203,13 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-slate-300 mb-1.5">
+              <label className="block text-xs font-mono text-stone-700 font-semibold mb-1.5">
                 Initial Severity Assessment
               </label>
               <select
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value)}
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+                className="w-full rounded-xl bg-[#FAF8F5] border border-[#E5E0D4] px-3 py-2 text-xs text-stone-900 focus:outline-none focus:border-stone-500"
               >
                 <option value="low">Low (Routine)</option>
                 <option value="medium">Medium (Standard Attention)</option>
@@ -221,17 +221,17 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
 
           {/* Location Text */}
           <div>
-            <label className="block text-xs font-mono text-slate-300 mb-1.5">
+            <label className="block text-xs font-mono text-stone-700 font-semibold mb-1.5">
               Location Landmark / Address Text
             </label>
             <div className="relative">
-              <MapPin className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+              <MapPin className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
               <input
                 type="text"
                 value={locationText}
                 onChange={(e) => setLocationText(e.target.value)}
                 placeholder="E.g., Ring Road near Moti Bagh flyover"
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 pl-9 pr-3.5 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                className="w-full rounded-xl bg-[#FAF8F5] border border-[#E5E0D4] pl-9 pr-3.5 py-2 text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-stone-500"
               />
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
           {/* Coordinates (Optional) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">
+              <label className="block text-xs font-mono text-stone-600 font-semibold mb-1">
                 Latitude (Optional)
               </label>
               <input
@@ -248,11 +248,11 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
                 value={latitude}
                 onChange={(e) => setLatitude(e.target.value)}
                 placeholder="E.g., 28.5828"
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-mono"
+                className="w-full rounded-xl bg-[#FAF8F5] border border-[#E5E0D4] px-3 py-2 text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-stone-500 font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">
+              <label className="block text-xs font-mono text-stone-600 font-semibold mb-1">
                 Longitude (Optional)
               </label>
               <input
@@ -261,7 +261,7 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
                 value={longitude}
                 onChange={(e) => setLongitude(e.target.value)}
                 placeholder="E.g., 77.1685"
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-mono"
+                className="w-full rounded-xl bg-[#FAF8F5] border border-[#E5E0D4] px-3 py-2 text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-stone-500 font-mono"
               />
             </div>
           </div>
@@ -269,7 +269,7 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
           {/* Citizen Name & Source */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">
+              <label className="block text-xs font-mono text-stone-600 font-semibold mb-1">
                 Citizen Identifier (Demo)
               </label>
               <input
@@ -277,17 +277,17 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
                 value={citizenName}
                 onChange={(e) => setCitizenName(e.target.value)}
                 placeholder="Demo Citizen"
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                className="w-full rounded-xl bg-[#FAF8F5] border border-[#E5E0D4] px-3 py-2 text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:border-stone-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-mono text-slate-400 mb-1">
+              <label className="block text-xs font-mono text-stone-600 font-semibold mb-1">
                 Source
               </label>
               <select
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
-                className="w-full rounded-xl bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-500 font-mono"
+                className="w-full rounded-xl bg-[#FAF8F5] border border-[#E5E0D4] px-3 py-2 text-xs text-stone-900 focus:outline-none focus:border-stone-500 font-mono"
               >
                 <option value="citizen_complaint">citizen_complaint</option>
                 <option value="simulated_sensor">simulated_sensor</option>
@@ -297,21 +297,21 @@ export default function NewComplaintModal({ isOpen, onClose, onSuccess, isDemoMo
           </div>
 
           {/* Actions */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-[#E5E0D4] flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:text-white text-xs font-mono"
+              className="px-4 py-2 rounded-xl border border-[#E5E0D4] bg-white text-stone-700 hover:bg-[#F2ECE1] text-xs font-mono transition-colors shadow-2xs"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs font-mono shadow-[0_0_15px_rgba(0,240,255,0.3)] transition-all"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-50 font-bold text-xs font-mono shadow-sm transition-all"
             >
-              <Send className={`w-3.5 h-3.5 ${isSubmitting ? 'animate-spin' : ''}`} />
+              <Send className={`w-3.5 h-3.5 text-amber-400 ${isSubmitting ? 'animate-spin' : ''}`} />
               <span>{isSubmitting ? 'Ingesting via Agent...' : 'Dispatch to System'}</span>
             </button>
           </div>

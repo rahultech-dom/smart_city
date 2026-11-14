@@ -5,54 +5,47 @@ export default function MetricCard({
   value,
   subtitle,
   icon: Icon,
-  accentColor = 'cyan', // cyan, rose, amber, emerald, indigo
+  accentColor = 'indigo', // teal, rose, amber, emerald, indigo, cyan
   onClick,
 }) {
   const accentStyles = {
     cyan: {
-      border: 'border-cyan-500/30 hover:border-cyan-500/60',
-      bgGlow: 'from-cyan-500/10 via-transparent to-transparent',
-      iconBg: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400',
-      valueColor: 'text-cyan-400',
+      border: 'border-teal-200/80 hover:border-teal-300',
+      iconBg: 'bg-teal-50 border-teal-200 text-teal-800',
+      valueColor: 'text-teal-900',
     },
     rose: {
-      border: 'border-rose-500/30 hover:border-rose-500/60',
-      bgGlow: 'from-rose-500/10 via-transparent to-transparent',
-      iconBg: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
-      valueColor: 'text-rose-400',
+      border: 'border-rose-200/80 hover:border-rose-300',
+      iconBg: 'bg-rose-50 border-rose-200 text-rose-800',
+      valueColor: 'text-rose-900',
     },
     amber: {
-      border: 'border-amber-500/30 hover:border-amber-500/60',
-      bgGlow: 'from-amber-500/10 via-transparent to-transparent',
-      iconBg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-      valueColor: 'text-amber-400',
+      border: 'border-amber-200/80 hover:border-amber-300',
+      iconBg: 'bg-amber-50 border-amber-200 text-amber-800',
+      valueColor: 'text-amber-900',
     },
     emerald: {
-      border: 'border-emerald-500/30 hover:border-emerald-500/60',
-      bgGlow: 'from-emerald-500/10 via-transparent to-transparent',
-      iconBg: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-      valueColor: 'text-emerald-400',
+      border: 'border-emerald-200/80 hover:border-emerald-300',
+      iconBg: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+      valueColor: 'text-emerald-900',
     },
     indigo: {
-      border: 'border-indigo-500/30 hover:border-indigo-500/60',
-      bgGlow: 'from-indigo-500/10 via-transparent to-transparent',
-      iconBg: 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400',
-      valueColor: 'text-indigo-400',
+      border: 'border-stone-200 hover:border-stone-300',
+      iconBg: 'bg-stone-100 border-stone-200 text-stone-800',
+      valueColor: 'text-stone-900',
     },
   };
 
-  const style = accentStyles[accentColor] || accentStyles.cyan;
+  const style = accentStyles[accentColor] || accentStyles.indigo;
 
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-xl border ${style.border} bg-[#0B132B]/80 backdrop-blur-md p-5 transition-all duration-300 ${onClick ? 'cursor-pointer hover:-translate-y-0.5' : ''}`}
+      className={`relative overflow-hidden rounded-xl border ${style.border} bg-white p-5 shadow-xs transition-all duration-200 ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md' : ''}`}
     >
-      <div className={`absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br ${style.bgGlow} blur-2xl pointer-events-none`} />
-
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400 font-mono">
+          <p className="text-xs font-semibold uppercase tracking-wider text-stone-500 font-mono">
             {title}
           </p>
           <div className="mt-2 flex items-baseline gap-2">
@@ -61,14 +54,14 @@ export default function MetricCard({
             </span>
           </div>
           {subtitle && (
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-stone-500">
               {subtitle}
             </p>
           )}
         </div>
 
         {Icon && (
-          <div className={`rounded-lg border p-2.5 ${style.iconBg}`}>
+          <div className={`rounded-lg border p-2.5 ${style.iconBg} shadow-2xs`}>
             <Icon className="w-5 h-5" />
           </div>
         )}

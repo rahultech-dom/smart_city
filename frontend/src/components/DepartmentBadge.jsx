@@ -5,51 +5,51 @@ const DEPT_CONFIGS = {
   traffic: {
     label: 'Traffic',
     icon: Car,
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/30',
-    text: 'text-orange-400',
+    bg: 'bg-orange-50',
+    border: 'border-orange-200',
+    text: 'text-orange-800',
   },
   safety: {
     label: 'Public Safety',
     icon: ShieldAlert,
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-    text: 'text-red-400',
+    bg: 'bg-red-50',
+    border: 'border-red-200',
+    text: 'text-red-800',
   },
   waste: {
     label: 'Waste Mgmt',
     icon: Trash2,
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    text: 'text-emerald-400',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    text: 'text-emerald-800',
   },
   environment: {
     label: 'Environment',
     icon: Leaf,
-    bg: 'bg-teal-500/10',
-    border: 'border-teal-500/30',
-    text: 'text-teal-400',
+    bg: 'bg-teal-50',
+    border: 'border-teal-200',
+    text: 'text-teal-800',
   },
   water: {
     label: 'Water Dept',
     icon: Droplets,
-    bg: 'bg-sky-500/10',
-    border: 'border-sky-500/30',
-    text: 'text-sky-400',
+    bg: 'bg-sky-50',
+    border: 'border-sky-200',
+    text: 'text-sky-800',
   },
   energy: {
     label: 'Energy Grid',
     icon: Zap,
-    bg: 'bg-yellow-500/10',
-    border: 'border-yellow-500/30',
-    text: 'text-yellow-400',
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
+    text: 'text-amber-800',
   },
   general: {
     label: 'General / Triage',
     icon: Layers,
-    bg: 'bg-slate-500/10',
-    border: 'border-slate-500/30',
-    text: 'text-slate-400',
+    bg: 'bg-stone-100',
+    border: 'border-stone-200',
+    text: 'text-stone-700',
   },
 };
 
@@ -63,7 +63,7 @@ export default function DepartmentBadge({ department, size = 'sm' }) {
     : 'px-2.5 py-0.5 text-[11px]';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded border ${cfg.bg} ${cfg.border} ${cfg.text} ${sizeClasses} font-medium`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-md border ${cfg.bg} ${cfg.border} ${cfg.text} ${sizeClasses} font-medium shadow-2xs`}>
       <Icon className="w-3.5 h-3.5" />
       <span>{cfg.label}</span>
     </span>

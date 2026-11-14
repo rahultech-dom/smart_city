@@ -122,7 +122,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070C18] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-white">
+    <div className="min-h-screen bg-[#F7F5F0] text-stone-900 flex flex-col font-sans selection:bg-amber-200 selection:text-stone-900">
       <div className="flex-1 flex">
         
         {/* Navigation Sidebar */}
@@ -197,14 +197,14 @@ export default function App() {
           </main>
 
           {/* Municipal Operations Footer */}
-          <footer className="border-t border-slate-900 bg-[#070C18]/95 py-4 text-xs font-mono text-slate-500">
+          <footer className="border-t border-[#E5E0D4] bg-[#F5F2EB]/95 py-4 text-xs font-mono text-stone-500">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span>UrbanFlow AI • Municipal Operations & Intelligent Infrastructure</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                <span className="text-stone-700 font-medium">UrbanFlow AI • Municipal Operations & Intelligent Infrastructure</span>
               </div>
-              <div className="flex items-center gap-4 text-[11px] text-slate-600">
-                <span>FastAPI Base: <code className="text-slate-400">/api</code></span>
+              <div className="flex items-center gap-4 text-[11px] text-stone-500">
+                <span>FastAPI Base: <code className="text-stone-700 font-semibold">/api</code></span>
                 <span>Supabase PG</span>
                 <span>n8n Multi-Agent Workflow Engine</span>
               </div>

@@ -4,33 +4,33 @@ import { AlertTriangle, Flame, Info, CheckCircle2 } from 'lucide-react';
 const SEVERITY_CONFIGS = {
   critical: {
     label: 'Critical',
-    bg: 'bg-rose-500/15',
-    border: 'border-rose-500/40',
-    text: 'text-rose-400',
-    glow: 'shadow-[0_0_12px_rgba(244,63,94,0.35)]',
+    bg: 'bg-rose-50',
+    border: 'border-rose-300',
+    text: 'text-rose-800 font-bold',
+    glow: 'shadow-2xs',
     icon: Flame,
   },
   high: {
     label: 'High',
-    bg: 'bg-amber-500/15',
-    border: 'border-amber-500/40',
-    text: 'text-amber-400',
-    glow: 'shadow-[0_0_10px_rgba(245,158,11,0.25)]',
+    bg: 'bg-amber-50',
+    border: 'border-amber-300',
+    text: 'text-amber-800 font-semibold',
+    glow: 'shadow-2xs',
     icon: AlertTriangle,
   },
   medium: {
     label: 'Medium',
-    bg: 'bg-blue-500/15',
-    border: 'border-blue-500/40',
-    text: 'text-blue-400',
-    glow: 'shadow-[0_0_8px_rgba(59,130,246,0.2)]',
+    bg: 'bg-sky-50',
+    border: 'border-sky-200',
+    text: 'text-sky-800 font-medium',
+    glow: '',
     icon: Info,
   },
   low: {
     label: 'Low',
-    bg: 'bg-slate-500/15',
-    border: 'border-slate-500/30',
-    text: 'text-slate-300',
+    bg: 'bg-stone-100',
+    border: 'border-stone-200',
+    text: 'text-stone-700 font-medium',
     glow: '',
     icon: CheckCircle2,
   },
@@ -46,7 +46,7 @@ export default function SeverityBadge({ severity, showIcon = true, size = 'sm' }
     : 'px-2.5 py-0.5 text-[11px]';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded border ${cfg.bg} ${cfg.border} ${cfg.text} ${cfg.glow} ${sizeClasses} font-mono font-medium tracking-wide uppercase`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-md border ${cfg.bg} ${cfg.border} ${cfg.text} ${cfg.glow} ${sizeClasses} font-mono uppercase tracking-wide`}>
       {showIcon && <Icon className="w-3 h-3 stroke-[2.5]" />}
       <span>{cfg.label}</span>
     </span>
