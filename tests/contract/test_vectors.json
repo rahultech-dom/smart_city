@@ -1,0 +1,171 @@
+{
+  "test_cases": [
+    {
+      "id": "TC01_VALID_WASTE_COMPLAINT",
+      "description": "Standard valid complaint for overflowing garbage",
+      "input": {
+        "citizen_name": "Demo Citizen",
+        "contact": null,
+        "description": "Garbage bins are overflowing near Demo Market, Sector 1.",
+        "category": null,
+        "image_url": null,
+        "latitude": 28.6139,
+        "longitude": 77.2090,
+        "location_text": "Demo Market, Sector 1",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": true,
+        "category": "waste",
+        "assigned_department": "waste",
+        "severity": "medium",
+        "status": "submitted",
+        "has_coordinates": true
+      }
+    },
+    {
+      "id": "TC02_EMPTY_DESCRIPTION",
+      "description": "Validation error on whitespace-only description",
+      "input": {
+        "citizen_name": "Demo Citizen",
+        "description": "   \n\t  ",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": false,
+        "error_code": "VALIDATION_ERROR",
+        "message": "The complaint description cannot be empty."
+      }
+    },
+    {
+      "id": "TC03_MISSING_DESCRIPTION",
+      "description": "Validation error on missing description field",
+      "input": {
+        "citizen_name": "Demo Citizen",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": false,
+        "error_code": "VALIDATION_ERROR",
+        "message": "The complaint description is required and must be text."
+      }
+    },
+    {
+      "id": "TC04_INVALID_SOURCE",
+      "description": "Validation error on disallowed source",
+      "input": {
+        "description": "Pothole in the road",
+        "source": "unauthorized_crawler"
+      },
+      "expected": {
+        "valid": false,
+        "error_code": "VALIDATION_ERROR"
+      }
+    },
+    {
+      "id": "TC05_MISSING_COORDINATES",
+      "description": "Valid complaint with no coordinates provided",
+      "input": {
+        "citizen_name": "Anonymous",
+        "description": "Traffic lights are malfunctioning at the intersection.",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": true,
+        "category": "traffic",
+        "assigned_department": "traffic",
+        "severity": "medium",
+        "status": "submitted",
+        "has_coordinates": false,
+        "latitude": null,
+        "longitude": null
+      }
+    },
+    {
+      "id": "TC06_SAFETY_CRITICAL",
+      "description": "Critical severity threat to life / safety",
+      "input": {
+        "citizen_name": "Resident",
+        "description": "Active fire and live wire touching water puddle, life threat emergency!",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": true,
+        "category": "safety",
+        "assigned_department": "safety",
+        "severity": "critical",
+        "status": "submitted"
+      }
+    },
+    {
+      "id": "TC07_WATER_DEPARTMENT",
+      "description": "Water pipeline burst causing street waterlogging",
+      "input": {
+        "description": "Underground water pipe burst and causing major street waterlogging.",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": true,
+        "category": "water",
+        "assigned_department": "water",
+        "status": "submitted"
+      }
+    },
+    {
+      "id": "TC08_ENERGY_DEPARTMENT",
+      "description": "Power blackout and non-functional street lights",
+      "input": {
+        "description": "Total power blackout and street lights not working in block 4.",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": true,
+        "category": "energy",
+        "assigned_department": "energy",
+        "status": "submitted"
+      }
+    },
+    {
+      "id": "TC09_ENVIRONMENT_DEPARTMENT",
+      "description": "Toxic air quality and heavy smoke emissions",
+      "input": {
+        "description": "Heavy toxic smoke and dangerous air quality pollution near factory.",
+        "source": "simulated_sensor"
+      },
+      "expected": {
+        "valid": true,
+        "category": "environment",
+        "assigned_department": "environment",
+        "status": "submitted"
+      }
+    },
+    {
+      "id": "TC10_GENERAL_FALLBACK",
+      "description": "Uncategorized civic inquiry falling back to general",
+      "input": {
+        "description": "General question regarding municipal office visiting hours.",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": true,
+        "category": "general",
+        "assigned_department": "general",
+        "severity": "medium",
+        "status": "submitted"
+      }
+    },
+    {
+      "id": "TC11_IDEMPOTENCY_KEY",
+      "description": "Preserve existing complaint_id passed by backend caller",
+      "input": {
+        "complaint_id": "77777777-7777-4777-8777-777777777777",
+        "description": "Garbage dump cleared but bins are missing.",
+        "source": "citizen_complaint"
+      },
+      "expected": {
+        "valid": true,
+        "complaint_id": "77777777-7777-4777-8777-777777777777"
+      }
+    }
+  ]
+}

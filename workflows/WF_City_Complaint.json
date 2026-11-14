@@ -1,0 +1,297 @@
+{
+  "name": "WF_City_Complaint",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "complaint-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e2d7890b-b230-4be6-a1d2-06eec4e1f701",
+      "name": "Webhook Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        240
+      ],
+      "webhookId": "91a029db-60fa-4009-8f0a-cf11ba6f74ea"
+    },
+    {
+      "parameters": {},
+      "id": "b3e94471-a477-4402-9988-cb9426f0e21a",
+      "name": "Sub-workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        180,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// UrbanFlow AI — Member 2: Complaint Intake Validation & Normalization\nconst inputData = $input.first().json;\nconst raw = inputData.body || inputData;\n\n// 1. Validate description (required, must be non-empty string after trimming)\nconst rawDesc = raw.description;\nif (rawDesc === null || rawDesc === undefined || typeof rawDesc !== 'string') {\n  return [{\n    json: {\n      valid: false,\n      error_code: \"VALIDATION_ERROR\",\n      message: \"The complaint description is required and must be text.\",\n      http_status: 400\n    }\n  }];\n}\n\nconst trimmedDesc = rawDesc.trim();\nif (trimmedDesc.length === 0) {\n  return [{\n    json: {\n      valid: false,\n      error_code: \"VALIDATION_ERROR\",\n      message: \"The complaint description cannot be empty.\",\n      http_status: 400\n    }\n  }];\n}\n\n// 2. Validate source (one of citizen_complaint, simulated_sensor, admin)\nconst allowedSources = ['citizen_complaint', 'simulated_sensor', 'admin'];\nconst rawSource = raw.source || 'citizen_complaint';\nif (!allowedSources.includes(rawSource)) {\n  return [{\n    json: {\n      valid: false,\n      error_code: \"VALIDATION_ERROR\",\n      message: `Invalid source '${rawSource}'. Allowed sources: ${allowedSources.join(', ')}.`,\n      http_status: 400\n    }\n  }];\n}\n\n// 3. Handle coordinates (numeric or null, never infer from image/text)\nlet lat = (raw.latitude !== undefined && raw.latitude !== null) ? Number(raw.latitude) : null;\nlet lon = (raw.longitude !== undefined && raw.longitude !== null) ? Number(raw.longitude) : null;\nif (isNaN(lat)) lat = null;\nif (isNaN(lon)) lon = null;\nconst hasCoordinates = (lat !== null && lon !== null);\n\n// 4. Generate RFC-4122 v4 compliant UUID if not provided\nfunction generateUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst complaintId = raw.complaint_id || generateUUID();\nconst eventId = raw.event_id || generateUUID();\nconst now = new Date().toISOString();\n\nreturn [{\n  json: {\n    valid: true,\n    complaint_id: complaintId,\n    event_id: eventId,\n    citizen_name: raw.citizen_name || 'Demo Citizen',\n    contact: raw.contact || null,\n    description: trimmedDesc,\n    category: raw.category || null,\n    image_url: raw.image_url || null,\n    latitude: lat,\n    longitude: lon,\n    has_coordinates: hasCoordinates,\n    location_text: raw.location_text || (hasCoordinates ? `${lat}, ${lon}` : 'Location unprovided'),\n    source: rawSource,\n    created_at: now,\n    updated_at: now\n  }\n}];"
+      },
+      "id": "c1f8a912-706b-4399-bfb1-382a61d19842",
+      "name": "Validate & Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "e67b9dc0-4497-40d6-bca5-b3e2b3e8e19b",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4e21703-91ac-4628-97c9-f19b26d3a84e",
+      "name": "Is Input Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error_code\": \"{{ $json.error_code }}\",\n  \"message\": \"{{ $json.message }}\",\n  \"event_id\": null\n}",
+        "options": {
+          "responseCode": "={{ $json.http_status || 400 }}"
+        }
+      },
+      "id": "90ba7599-2a78-4b95-a226-f7a36deea0b7",
+      "name": "Reject Invalid Input",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// UrbanFlow AI — Category Classification & Shared Priority Rules\nconst item = $input.first().json;\nconst desc = (item.description || '').toLowerCase();\nconst allowedDepartments = ['traffic', 'safety', 'waste', 'environment', 'water', 'energy', 'general'];\n\nlet category = item.category ? item.category.toLowerCase() : null;\n\n// 1. Classification into exactly one allowed department\nif (!allowedDepartments.includes(category)) {\n  if (desc.match(/\\b(active fire|life threat|explosion|theft|assault|crime|safety|harassment|vandalism|weapon|suspicious|violence|emergency|structural collapse)\\b/)) {\n    category = 'safety';\n  } else if (desc.match(/\\b(traffic|traffic jam|congestion|traffic lights?|traffic signals?|road block|pothole|car crash|accident|intersection|lane|speeding|pedestrian crossing)\\b/)) {\n    category = 'traffic';\n  } else if (desc.match(/\\b(water|pipe|leak|drain|drainage|waterlogging|flooding|supply|sewage|sewer|contamination|burst)\\b/)) {\n    category = 'water';\n  } else if (desc.match(/\\b(garbage|trash|bin|bins|waste|dump|rubbish|litter|sanitation|collection|recycling|debris)\\b/)) {\n    category = 'waste';\n  } else if (desc.match(/\\b(electricity|power|blackout|outage|street ?lights?|spark|wire|pole|transformer|voltage|short circuit)\\b/)) {\n    category = 'energy';\n  } else if (desc.match(/\\b(air quality|pollution|smoke|smog|aqi|noise|odor|odour|chemical|toxic|dust|tree falling|emission)\\b/)) {\n    category = 'environment';\n  } else {\n    category = 'general';\n  }\n}\n\n// 2. Shared Priority Rules (Section 4.3):\n// - critical: explicitly indicates an immediate threat to life or serious danger.\n// - high: significant public safety or infrastructure concern, but no confirmed immediate life-threatening situation.\n// - medium: service disruption or civic issue requiring timely attention.\n// - low: minor issue with no stated immediate risk.\n// - If evidence is insufficient or uncertain, use 'medium'.\n\nlet severity = 'medium';\nif (desc.match(/\\b(life threat|immediate danger|explosion|live wire touching|active fire|drowning|fatal|gas leak emergency|major collapse)\\b/)) {\n  severity = 'critical';\n} else if (desc.match(/\\b(major accident|broken water main|sparking transformer|severe flooding|hazardous waste|open manhole|high voltage wire)\\b/)) {\n  severity = 'high';\n} else if (desc.match(/\\b(overflow|leaking tap|flickering light|litter|pothole|delayed garbage|dirty road|illegal parking|congestion)\\b/)) {\n  severity = 'medium';\n} else if (desc.match(/\\b(cosmetic|faded paint|minor graffiti|mild smell|small puddle|routine query)\\b/)) {\n  severity = 'low';\n} else {\n  severity = 'medium';\n}\n\nitem.category = category;\nitem.assigned_department = category;\nitem.severity = severity;\nitem.status = 'submitted'; // Citizen-facing initial status\n\nreturn [{ json: item }];"
+      },
+      "id": "e390c377-50a1-4ee6-8576-96bcf2fa0993",
+      "name": "Classify & Assess Severity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// UrbanFlow AI — Format Record & Event Payload\nconst item = $input.first().json;\n\n// Complaint record contract (Section 3.4)\nconst complaintRecord = {\n  complaint_id: item.complaint_id,\n  citizen_name: item.citizen_name,\n  contact: item.contact,\n  description: item.description,\n  category: item.category,\n  severity: item.severity,\n  status: 'submitted',\n  assigned_department: item.assigned_department,\n  image_url: item.image_url,\n  latitude: item.latitude,\n  longitude: item.longitude,\n  location_text: item.location_text,\n  source: item.source,\n  created_at: item.created_at,\n  updated_at: item.updated_at\n};\n\n// Command agent event forwarding contract (Section 4.2 / Section 3.5)\nconst eventPayload = {\n  event_id: item.event_id,\n  complaint_id: item.complaint_id,\n  source: item.source,\n  department: item.assigned_department,\n  category: item.category,\n  description: item.description,\n  location: {\n    latitude: item.latitude,\n    longitude: item.longitude,\n    location_text: item.location_text\n  },\n  severity: item.severity,\n  status: 'submitted',\n  citizen_name: item.citizen_name,\n  created_at: item.created_at\n};\n\nreturn [{\n  json: {\n    complaint_record: complaintRecord,\n    event_payload: eventPayload\n  }\n}];"
+      },
+      "id": "f5832a89-3221-4d37-8e67-d8cba9914bf1",
+      "name": "Format Complaint Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.SUPABASE_URL || 'https://mock.supabase.co').replace(/\\/+$/, '') + '/rest/v1/complaints' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'demo-anon-key' }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'demo-anon-key') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=ignore-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.complaint_record) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "a93144ef-64b1-412f-9204-62947a744e88",
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "workflowId": "={{ $env.WF_CITY_COMMAND_ID || 'WF_City_Command' }}",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "3c029b3a-59ef-4c6e-8ee7-e6f79d5e305e",
+      "name": "Forward to City Command Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1580,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"complaint_id\": \"{{ $('Format Complaint Record').item.json.complaint_record.complaint_id }}\",\n  \"category\": \"{{ $('Format Complaint Record').item.json.complaint_record.category }}\",\n  \"assigned_department\": \"{{ $('Format Complaint Record').item.json.complaint_record.assigned_department }}\",\n  \"severity\": \"{{ $('Format Complaint Record').item.json.complaint_record.severity }}\",\n  \"status\": \"{{ $('Format Complaint Record').item.json.complaint_record.status }}\",\n  \"created_at\": \"{{ $('Format Complaint Record').item.json.complaint_record.created_at }}\",\n  \"message\": \"Complaint received and classified successfully.\"\n}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "2bc98341-9c88-4672-8ee4-ea0d1f76d4d4",
+      "name": "Respond to Citizen Caller",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Intake": {
+      "main": [
+        [
+          {
+            "node": "Validate & Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sub-workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate & Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Is Input Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Input Valid?": {
+      "main": [
+        [
+          {
+            "node": "Classify & Assess Severity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Invalid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify & Assess Severity": {
+      "main": [
+        [
+          {
+            "node": "Format Complaint Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Complaint Record": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Forward to City Command Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to City Command Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Citizen Caller",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
